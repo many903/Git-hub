@@ -1,0 +1,149 @@
+import sys
+import time
+import signal
+import RPi.GPIO as GPIO#from gpiozero import LED, Button
+from threading import Thread
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db   #control de base de datos
+from dhtxx import DHT11, DHT22  # es para controlar el senser DHT11 y es una libreria del autor DHTXX
+
+#referencia de los pines
+dht_sensor      = DHT11(4)          #este pin no se define dado a que lo hace la biblioteca
+moisture_sensor = 11                #utiliza el pin 11 
+motor           = 33                #utiliza el pin 33
+light_sensor    = serial.serial('/dev/ttyUSB0',9600)#faltan datos ) #utiliza el pin 33           = serialArduino.redline().decode('ascii')           #utiliza el pin 22
+
+PAHT_CRED = '/home/pi/data-base-iot-garden-firebase-adminsdk-upxxr-ff0a5177b8.json'                # credenciales para acceder a la base de datos  
+URL_DB = 'https://data-base-iot-garden-default-rtdb.firebaseio.com'   #donde se encuentran las credenciales 
+REF_HOME = 'enter the project bucket here'          #ramificacion priciplal 1
+REF_SENSORES = 'sensores'                           #ramificacion priciplal 2
+REF_MOTOR = 'motor_state'                           #REF_LUCES para leer el valor dado por la app
+REF_HUMEDAD = 'humedad'                             #humedad 
+REF_PI_STATE = 'pi_state'                           #para saber como se encuentra la raspberry pi 4
+REF_UPDATE = 'update'                               #para pedir informacion desde la app    
+REF_TEMP ='temperatura'                             #temperatura
+REF_MOISTURE ='moisture'                            #humedad del suelo 
+REF_LIGHT ='luz'                                    #sensor de luz desde arduino 
+class IOT():
+
+    def __init__(self):                             
+        cred = credentials.Certificate(PAHT_CRED)   
+        firebase_admin.initialize_app(cred, {       
+            'databaseURL': URL_DB                   
+        })
+
+        self.refAPP = db.reference(REF_HOME)       
+        self.refsensores = db.reference(REF_SENSORES)
+        
+        #self.estructuraInicialDB() # solo ejecutar la primera vez
+        
+        #referncias de la primera rama
+
+        self.refmotor = self.refAPP.child(REF_MOTOR)
+        self.refpi = self.refAPP.child(REF_PI_STATE)
+        self.refupdate = self.refAPP.child(REF_UPDATE)
+
+        #referencia de la segunda rama(sensores)
+        
+        self.refhumdad = self.refsensores.child(REF_TEMP)
+        self.reftemperatura = self.refsensores.child(REF_HUMEDAD)
+        self.refluz = self.refsensores.child(REF_MOISTURE)
+        self.refmoisture = self.refsensores.child(REF_LIGHT)
+
+    def estructuraInicialDB(self):                          #como se va a etsructurar la base de datos
+        self.refHome.set({                                  #tambien como se va a definir los datos (si se puede escribir en ellos o no)
+            'enter the project bucket here': {
+                'motor_state':True,
+                'pi_state':True,
+                'update':True
+            },
+            'sensores':{
+                'humedad':True,
+                'temperatura':True,
+                'luz':True,
+                'moisture':True
+            }
+        })
+    def motor(self, z):                      #control del relay de la bomba de agua 
+        if (self.refmotor == str('1')):
+    		GPIO.output(31,True)
+        
+	    elif(self.refmotor == str('2')):
+		    automate(z)
+            
+        else:
+            GPIO.output()
+    def Garden(self):
+        print ("received data in ", int(time.time() - initTime), "seconds")
+        initTime = time.time()
+
+        GPIO.add_event_detect(moisture_sensor, GPIO.BOTH, bouncetime=200)
+        # Agregar función de devolución de llamada activada por tiempo
+        GPIO.add_event_callback(moisture_sensor, callback)
+
+    def humdadsuelo(self,z):
+        print('Pulsador On')
+        self.refmoisture.set(True)
+
+    def dht11(self,r):
+        r = dht11.get_result(max_tries=10)  # 'max_tries' defaults to 5
+        if r:
+            print(r)
+        else:
+            print('Failed to get result !')
+        format(r[0], r[1])
+        self.temperatura(r[0])
+        self.humedad(r[1])
+        
+
+    def luz(self):
+        self.
+
+    def automate(z):
+        #if the time is in between an interval of +- 15 mins, while the moisture level < thresh keep motor running, else turn off motor
+        thresh = 41
+        global watered
+        print ("watered?", watered)
+        time = datetime.datetime.now().strftime("%H:%M")
+        print ("current time", time)
+        if (((time > "19:45") and (time < "20:40")) or ((time > "3:45") and (time < "4:15"))):
+            if not watered:
+                while True:
+                    moisture = z + 40
+
+                    if (moisture > thresh):
+    		            GPIO.output(33,True)
+                                      
+                    else:
+        	            GPIO.output(33,False)
+        else:
+            watered = False
+            GPIO.output(33,False)
+    def callback(self):#posible cambio 
+        if moisture_sensor>1:
+                print "el suelo esta seco"
+                z = 0
+        else:
+                print "el suelo esta humedo"
+                z = 1
+
+GPIO.setmode(GPIO.BOARD)            #coloca a todos los pines segun el numero del pin
+GPIO.setup(dht_sensor, GPIO.IN)     #entrada de informacion desde el pin ch_yl69
+GPIO.setup(light_sensor, GPIO.IN)   #salida de informacion desde el pin ledpin1
+GPIO.setup(motor, GPIO.OUT)         #salida de informacion desde el pin nivel_agua
+
+
+    
+
+print ('START !')
+iot = IOT()
+
+subproceso_Garden = Thread(target=iot.Garden)
+subproceso_motor.daemon = True
+subproceso_motor.start()
+
+subproceso_btn = Thread(target=iot.humdadsuelo)
+subproceso_btn.daemon = True
+subproceso_btn.start()
+signal.pause()
